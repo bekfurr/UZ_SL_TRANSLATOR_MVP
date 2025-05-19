@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block title %}Data Processor - Sign Language Translator{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Data Processor</h1>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4>Upload Videos</h4>
+            </div>
+            <div class="card-body">
+                <p>Upload sign language videos to process and train your model.</p>
+                <div class="d-grid">
+                    <a href="{% url 'upload_video' %}" class="btn btn-primary">
+                        <i class="fas fa-upload me-2"></i>Upload Video
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h4>Process Data</h4>
+            </div>
+            <div class="card-body">
+                <p>Process your uploaded videos to extract features for training.</p>
+                <form action="{% url 'process_data' %}" method="post">
+                    {% csrf_token %}
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-cogs me-2"></i>Process Videos
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4>Your Videos</h4>
+            </div>
+            <div class="card-body">
+                {% if videos %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Word</th>
+                                <th>Uploaded</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for video in videos %}
+                            <tr>
+                                <td>{{ video.word }}</td>
+                                <td>{{ video.uploaded_at|date:"M d, Y" }}</td>
+                                <td>
+                                    <a href="{{ video.video.url }}" class="btn btn-sm btn-info" target="_blank">View</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p>You haven't uploaded any videos yet. <a href="{% url 'upload_video' %}">Upload a video</a> to get started.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

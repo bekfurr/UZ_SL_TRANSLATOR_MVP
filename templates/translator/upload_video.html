@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block title %}Upload Video - Sign Language Translator{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3>Upload Sign Language Video</h3>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="{{ form.word.id_for_label }}" class="form-label">Word (in Uzbek)</label>
+                        {{ form.word }}
+                        {% if form.word.errors %}
+                            <div class="text-danger">{{ form.word.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.video.id_for_label }}" class="form-label">Video File</label>
+                        {{ form.video }}
+                        {% if form.video.errors %}
+                            <div class="text-danger">{{ form.video.errors }}</div>
+                        {% endif %}
+                        <div class="form-text">Upload a video of a sign language gesture. Supported formats: MP4, AVI, MOV.</div>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'data_processor' %}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Upload</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add Bootstrap classes to form fields
+        const wordInput = document.getElementById('{{ form.word.id_for_label }}');
+        const videoInput = document.getElementById('{{ form.video.id_for_label }}');
+        
+        if (wordInput) wordInput.classList.add('form-control');
+        if (videoInput) videoInput.classList.add('form-control');
+    });
+</script>
+{% endblock %}

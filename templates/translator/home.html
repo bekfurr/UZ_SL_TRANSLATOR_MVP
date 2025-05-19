@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign Language Translator - Home{% endblock %}
+
+{% block content %}
+<div class="hero-section text-center">
+    <div class="container">
+        <h1>Sign Language Translator</h1>
+        <p class="lead">Bridging communication gaps for deaf and blind individuals</p>
+        {% if not user.is_authenticated %}
+        <div class="mt-4">
+            <a href="{% url 'login' %}" class="btn btn-primary me-2">Login</a>
+            <a href="{% url 'register' %}" class="btn btn-outline-light">Register</a>
+        </div>
+        {% else %}
+        <div class="mt-4">
+            <a href="{% url 'realtime_translator' %}" class="btn btn-primary">Start Translating</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="container">
+    <div class="row text-center mb-5">
+        <div class="col-md-4">
+            <div class="feature-icon">
+                <i class="fas fa-database"></i>
+            </div>
+            <h3>Data Processing</h3>
+            <p>Process sign language videos to extract hand and body landmarks for training.</p>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-icon">
+                <i class="fas fa-brain"></i>
+            </div>
+            <h3>Model Training</h3>
+            <p>Train machine learning models to recognize and translate sign language gestures.</p>
+        </div>
+        <div class="col-md-4">
+            <div class="feature-icon">
+                <i class="fas fa-language"></i>
+            </div>
+            <h3>Real-time Translation</h3>
+            <p>Translate sign language in real-time using your webcam or uploaded videos.</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4>About the Project</h4>
+                </div>
+                <div class="card-body">
+                    <p>This sign language translator application is designed to help deaf and blind individuals communicate more effectively. The system uses computer vision and machine learning to recognize sign language gestures and translate them into text.</p>
+                    <p>The project is being submitted to the Prezident Tech Award in Uzbekistan as an innovative solution to improve accessibility and inclusion.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4>How It Works</h4>
+                </div>
+                <div class="card-body">
+                    <ol>
+                        <li>Upload sign language videos with corresponding words</li>
+                        <li>Process the videos to extract hand and body landmarks</li>
+                        <li>Train a machine learning model on the processed data</li>
+                        <li>Use the trained model to translate sign language in real-time</li>
+                    </ol>
+                    <p>The system uses MediaPipe for hand and pose detection, and a Random Forest classifier for gesture recognition.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

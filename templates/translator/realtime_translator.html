@@ -1,0 +1,871 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign Language Translator - Sign Language Translator{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Sign Language Translator</h1>
+
+<!-- Navigation tabs for different translation methods -->
+<ul class="nav nav-tabs mb-4" id="translationTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="realtime-tab" data-bs-toggle="tab" data-bs-target="#realtime" type="button" role="tab" aria-controls="realtime" aria-selected="true">
+            <i class="fas fa-video me-2"></i>Real-time Translation
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="record-tab" data-bs-toggle="tab" data-bs-target="#record" type="button" role="tab" aria-controls="record" aria-selected="false">
+            <i class="fas fa-record-vinyl me-2"></i>Record & Translate
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button" role="tab" aria-controls="upload" aria-selected="false">
+            <i class="fas fa-upload me-2"></i>Upload Video
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="translationTabsContent">
+    <!-- Real-time Translation Tab -->
+    <div class="tab-pane fade show active" id="realtime" role="tabpanel" aria-labelledby="realtime-tab">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="video-container mb-4">
+                    <video id="realtime-video" autoplay playsinline></video>
+                    <canvas id="realtime-canvas"></canvas>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4>Translation Output</h4>
+                    </div>
+                    <div class="card-body">
+                        <div id="realtime-output" class="translation-output"></div>
+                        <div class="d-flex justify-content-end mt-3">
+                            <button id="realtime-clear" class="btn btn-secondary">Clear</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4>Status</h4>
+                    </div>
+                    <div class="card-body">
+                        <div id="realtime-status" class="alert alert-info">Ready to start</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4>Controls</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="realtime-model-select" class="form-label">Select Model</label>
+                            <select id="realtime-model-select" class="form-select">
+                                <option value="">-- Select a model --</option>
+                                {% for model in models %}
+                                <option value="{{ model.id }}" {% if request.GET.model_id == model.id|stringformat:"s" %}selected{% endif %}>{{ model.name }} ({{ model.accuracy|floatformat:2 }}%)</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="realtime-interval-input" class="form-label">Update Interval (seconds)</label>
+                            <input type="number" id="realtime-interval-input" class="form-control" value="1" min="0.5" max="10" step="0.5">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="realtime-camera-select" class="form-label">Select Camera</label>
+                            <select id="realtime-camera-select" class="form-select">
+                                <option value="">Loading cameras...</option>
+                            </select>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button id="realtime-start" class="btn btn-primary">
+                                <i class="fas fa-play me-2"></i>Start Translation
+                            </button>
+                            <button id="realtime-stop" class="btn btn-danger" disabled>
+                                <i class="fas fa-stop me-2"></i>Stop
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Record & Translate Tab -->
+    <div class="tab-pane fade" id="record" role="tabpanel" aria-labelledby="record-tab">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="video-container mb-4">
+                    <video id="record-video" autoplay playsinline></video>
+                    <canvas id="record-canvas"></canvas>
+                    <div id="record-timer" class="recording-timer">00:00</div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4>Recording Instructions</h4>
+                    </div>
+                    <div class="card-body">
+                        <ol>
+                            <li>Select a model and camera</li>
+                            <li>Press "Start Recording" to begin</li>
+                            <li>Make sign language gestures with 3-4 seconds between each word</li>
+                            <li>Recording will automatically stop after 30 seconds</li>
+                            <li>The system will process and translate your gestures</li>
+                        </ol>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4>Translation Output</h4>
+                    </div>
+                    <div class="card-body">
+                        <div id="record-output" class="translation-output"></div>
+                        <div class="d-flex justify-content-end mt-3">
+                            <button id="record-clear" class="btn btn-secondary">Clear</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4>Status</h4>
+                    </div>
+                    <div class="card-body">
+                        <div id="record-status" class="alert alert-info">Ready to record</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4>Controls</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="record-model-select" class="form-label">Select Model</label>
+                            <select id="record-model-select" class="form-select">
+                                <option value="">-- Select a model --</option>
+                                {% for model in models %}
+                                <option value="{{ model.id }}">{{ model.name }} ({{ model.accuracy|floatformat:2 }}%)</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="record-camera-select" class="form-label">Select Camera</label>
+                            <select id="record-camera-select" class="form-select">
+                                <option value="">Loading cameras...</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="record-duration" class="form-label">Recording Duration (seconds)</label>
+                            <input type="number" id="record-duration" class="form-control" value="30" min="10" max="120" step="5">
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button id="record-start" class="btn btn-primary">
+                                <i class="fas fa-record-vinyl me-2"></i>Start Recording
+                            </button>
+                            <button id="record-stop" class="btn btn-danger" disabled>
+                                <i class="fas fa-stop me-2"></i>Stop Recording
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Upload Video Tab -->
+    <div class="tab-pane fade" id="upload" role="tabpanel" aria-labelledby="upload-tab">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4>Upload Video</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="video-upload-form">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="upload-model-select" class="form-label">Select Model</label>
+                                <select id="upload-model-select" class="form-select" required>
+                                    <option value="">-- Select a model --</option>
+                                    {% for model in models %}
+                                    <option value="{{ model.id }}">{{ model.name }} ({{ model.accuracy|floatformat:2 }}%)</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="video-file" class="form-label">Select Video File</label>
+                                <input type="file" id="video-file" class="form-control" accept="video/*" required>
+                                <div class="form-text">Upload a video of sign language gestures to translate.</div>
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-upload me-2"></i>Upload & Translate
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4>Translation Output</h4>
+                    </div>
+                    <div class="card-body">
+                        <div id="upload-output" class="translation-output"></div>
+                        <div class="d-flex justify-content-end mt-3">
+                            <button id="upload-clear" class="btn btn-secondary">Clear</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4>Status</h4>
+                    </div>
+                    <div class="card-body">
+                        <div id="upload-status" class="alert alert-info">Ready to upload</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4>Instructions</h4>
+                    </div>
+                    <div class="card-body">
+                        <ol>
+                            <li>Select a trained model from the dropdown</li>
+                            <li>Choose a video file containing sign language gestures</li>
+                            <li>Click "Upload & Translate" to process the video</li>
+                            <li>The translation will appear in the output section</li>
+                        </ol>
+                        <div class="alert alert-warning">
+                            <i class="fas fa-info-circle me-2"></i>For best results, ensure the video has good lighting and clear hand movements.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .video-container {
+        position: relative;
+        width: 100%;
+        max-width: 640px;
+        margin: 0 auto;
+        border: 2px solid #007bff;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    #realtime-video, #record-video, #realtime-canvas, #record-canvas {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+    
+    .recording-timer {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: rgba(255, 0, 0, 0.7);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-weight: bold;
+        display: none;
+    }
+    
+    .translation-output {
+        min-height: 100px;
+        border: 1px solid #ced4da;
+        border-radius: 5px;
+        padding: 10px;
+        margin-top: 10px;
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // CSRF token
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        // ==================== REAL-TIME TRANSLATION ====================
+        const realtimeVideo = document.getElementById('realtime-video');
+        const realtimeCanvas = document.getElementById('realtime-canvas');
+        const realtimeCtx = realtimeCanvas.getContext('2d');
+        const realtimeModelSelect = document.getElementById('realtime-model-select');
+        const realtimeIntervalInput = document.getElementById('realtime-interval-input');
+        const realtimeCameraSelect = document.getElementById('realtime-camera-select');
+        const realtimeStartButton = document.getElementById('realtime-start');
+        const realtimeStopButton = document.getElementById('realtime-stop');
+        const realtimeClearButton = document.getElementById('realtime-clear');
+        const realtimeOutput = document.getElementById('realtime-output');
+        const realtimeStatus = document.getElementById('realtime-status');
+        
+        let realtimeStream = null;
+        let realtimeIsRunning = false;
+        let realtimeInterval = null;
+        let realtimeTextOutput = "";
+        
+        // Update real-time status
+        function updateRealtimeStatus(message, type = 'info') {
+            realtimeStatus.className = `alert alert-${type}`;
+            realtimeStatus.textContent = message;
+        }
+        
+        // Update real-time UI based on state
+        function updateRealtimeUI() {
+            realtimeStartButton.disabled = realtimeIsRunning;
+            realtimeStopButton.disabled = !realtimeIsRunning;
+            realtimeModelSelect.disabled = realtimeIsRunning;
+            realtimeIntervalInput.disabled = realtimeIsRunning;
+            realtimeCameraSelect.disabled = realtimeIsRunning;
+        }
+        
+        // Start real-time camera
+        async function startRealtimeCamera() {
+            try {
+                updateRealtimeStatus('Starting camera...');
+                if (realtimeStream) {
+                    stopRealtimeCamera();
+                }
+                
+                const constraints = {
+                    video: {
+                        deviceId: realtimeCameraSelect.value ? { exact: realtimeCameraSelect.value } : undefined,
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        frameRate: { ideal: 30 }
+                    }
+                };
+                
+                realtimeStream = await navigator.mediaDevices.getUserMedia(constraints);
+                realtimeVideo.srcObject = realtimeStream;
+                
+                // Set canvas size to match video
+                realtimeVideo.onloadedmetadata = () => {
+                    realtimeCanvas.width = realtimeVideo.videoWidth;
+                    realtimeCanvas.height = realtimeVideo.videoHeight;
+                    updateRealtimeStatus('Camera started successfully');
+                };
+                
+                return true;
+            } catch (error) {
+                console.error('Error starting camera:', error);
+                updateRealtimeStatus('Error starting camera: ' + error.message, 'danger');
+                alert('Error starting camera. Please check camera permissions.');
+                return false;
+            }
+        }
+        
+        // Stop real-time camera
+        function stopRealtimeCamera() {
+            if (realtimeStream) {
+                realtimeStream.getTracks().forEach(track => track.stop());
+                realtimeStream = null;
+                realtimeVideo.srcObject = null;
+                updateRealtimeStatus('Camera stopped');
+            }
+        }
+        
+        // Capture frame from real-time video
+        function captureRealtimeFrame() {
+            if (!realtimeVideo.videoWidth) return null;
+            
+            realtimeCanvas.width = realtimeVideo.videoWidth;
+            realtimeCanvas.height = realtimeVideo.videoHeight;
+            realtimeCtx.drawImage(realtimeVideo, 0, 0, realtimeCanvas.width, realtimeCanvas.height);
+            
+            return realtimeCanvas.toDataURL('image/jpeg', 0.7);
+        }
+        
+        // Process real-time frame
+        async function processRealtimeFrame() {
+            if (!realtimeIsRunning) return;
+            
+            try {
+                // Capture frame
+                const dataUrl = captureRealtimeFrame();
+                if (!dataUrl) {
+                    console.error('Failed to capture frame');
+                    return;
+                }
+                
+                // Convert data URL to blob
+                const response = await fetch(dataUrl);
+                const blob = await response.blob();
+                
+                // Create form data
+                const formData = new FormData();
+                formData.append('frame', blob, 'frame.jpg');
+                formData.append('model_id', realtimeModelSelect.value);
+                
+                // Send to server
+                updateRealtimeStatus('Processing frame...');
+                const serverResponse = await fetch('{% url "translate_frame" %}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+                
+                if (!serverResponse.ok) {
+                    throw new Error(`HTTP error! status: ${serverResponse.status}`);
+                }
+                
+                const data = await serverResponse.json();
+                
+                // Display the processed frame
+                if (data.frame) {
+                    const img = new Image();
+                    img.onload = function() {
+                        realtimeCtx.clearRect(0, 0, realtimeCanvas.width, realtimeCanvas.height);
+                        realtimeCtx.drawImage(img, 0, 0, realtimeCanvas.width, realtimeCanvas.height);
+                    };
+                    img.src = data.frame;
+                    updateRealtimeStatus('Frame processed successfully');
+                }
+                
+                // Update translation only if a word was detected
+                if (data.word) {
+                    realtimeTextOutput += data.word + " ";
+                    realtimeOutput.textContent = realtimeTextOutput;
+                    updateRealtimeStatus('Word detected: ' + data.word, 'success');
+                } else {
+                    updateRealtimeStatus('No hand detected', 'warning');
+                }
+            } catch (error) {
+                console.error('Error processing frame:', error);
+                updateRealtimeStatus('Error processing frame: ' + error.message, 'danger');
+            }
+        }
+        
+        // Start real-time translation
+        async function startRealtimeTranslation() {
+            if (!realtimeModelSelect.value) {
+                alert('Please select a model first.');
+                return;
+            }
+            
+            if (await startRealtimeCamera()) {
+                realtimeIsRunning = true;
+                updateRealtimeUI();
+                updateRealtimeStatus('Translation started');
+                
+                // Wait a moment for the camera to initialize
+                setTimeout(() => {
+                    // Start translation loop
+                    const interval = Math.max(parseFloat(realtimeIntervalInput.value) * 1000, 500); // Minimum 500ms
+                    realtimeInterval = setInterval(processRealtimeFrame, interval);
+                }, 1000);
+            }
+        }
+        
+        // Stop real-time translation
+        function stopRealtimeTranslation() {
+            realtimeIsRunning = false;
+            
+            if (realtimeInterval) {
+                clearInterval(realtimeInterval);
+                realtimeInterval = null;
+            }
+            
+            stopRealtimeCamera();
+            updateRealtimeUI();
+            updateRealtimeStatus('Translation stopped');
+        }
+        
+        // Clear real-time output
+        function clearRealtimeOutput() {
+            realtimeTextOutput = "";
+            realtimeOutput.textContent = "";
+            updateRealtimeStatus('Output cleared');
+        }
+        
+        // ==================== RECORD & TRANSLATE ====================
+        const recordVideo = document.getElementById('record-video');
+        const recordCanvas = document.getElementById('record-canvas');
+        const recordCtx = recordCanvas.getContext('2d');
+        const recordModelSelect = document.getElementById('record-model-select');
+        const recordCameraSelect = document.getElementById('record-camera-select');
+        const recordDuration = document.getElementById('record-duration');
+        const recordStartButton = document.getElementById('record-start');
+        const recordStopButton = document.getElementById('record-stop');
+        const recordClearButton = document.getElementById('record-clear');
+        const recordOutput = document.getElementById('record-output');
+        const recordStatus = document.getElementById('record-status');
+        const recordTimer = document.getElementById('record-timer');
+        
+        let recordStream = null;
+        let recordIsRunning = false;
+        let recordedChunks = [];
+        let mediaRecorder = null;
+        let recordStartTime = 0;
+        let recordTimerInterval = null;
+        
+        // Update record status
+        function updateRecordStatus(message, type = 'info') {
+            recordStatus.className = `alert alert-${type}`;
+            recordStatus.textContent = message;
+        }
+        
+        // Update record UI based on state
+        function updateRecordUI() {
+            recordStartButton.disabled = recordIsRunning;
+            recordStopButton.disabled = !recordIsRunning;
+            recordModelSelect.disabled = recordIsRunning;
+            recordCameraSelect.disabled = recordIsRunning;
+            recordDuration.disabled = recordIsRunning;
+            
+            if (recordIsRunning) {
+                recordTimer.style.display = 'block';
+            } else {
+                recordTimer.style.display = 'none';
+            }
+        }
+        
+        // Format time for timer display
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.floor(seconds % 60);
+            return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
+        
+        // Update recording timer
+        function updateRecordTimer() {
+            const elapsedTime = (Date.now() - recordStartTime) / 1000;
+            recordTimer.textContent = formatTime(elapsedTime);
+        }
+        
+        // Start record camera
+        async function startRecordCamera() {
+            try {
+                updateRecordStatus('Starting camera...');
+                if (recordStream) {
+                    stopRecordCamera();
+                }
+                
+                const constraints = {
+                    video: {
+                        deviceId: recordCameraSelect.value ? { exact: recordCameraSelect.value } : undefined,
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        frameRate: { ideal: 30 }
+                    },
+                    audio: false
+                };
+                
+                recordStream = await navigator.mediaDevices.getUserMedia(constraints);
+                recordVideo.srcObject = recordStream;
+                
+                // Set canvas size to match video
+                recordVideo.onloadedmetadata = () => {
+                    recordCanvas.width = recordVideo.videoWidth;
+                    recordCanvas.height = recordVideo.videoHeight;
+                    updateRecordStatus('Camera started successfully');
+                };
+                
+                return true;
+            } catch (error) {
+                console.error('Error starting camera:', error);
+                updateRecordStatus('Error starting camera: ' + error.message, 'danger');
+                alert('Error starting camera. Please check camera permissions.');
+                return false;
+            }
+        }
+        
+        // Stop record camera
+        function stopRecordCamera() {
+            if (recordStream) {
+                recordStream.getTracks().forEach(track => track.stop());
+                recordStream = null;
+                recordVideo.srcObject = null;
+                updateRecordStatus('Camera stopped');
+            }
+        }
+        
+        // Start recording
+        async function startRecording() {
+            if (!recordModelSelect.value) {
+                alert('Please select a model first.');
+                return;
+            }
+            
+            if (await startRecordCamera()) {
+                try {
+                    recordedChunks = [];
+                    const options = { mimeType: 'video/webm;codecs=vp9' };
+                    
+                    mediaRecorder = new MediaRecorder(recordStream, options);
+                    
+                    mediaRecorder.ondataavailable = (event) => {
+                        if (event.data.size > 0) {
+                            recordedChunks.push(event.data);
+                        }
+                    };
+                    
+                    mediaRecorder.onstop = processRecording;
+                    
+                    // Start recording
+                    mediaRecorder.start();
+                    recordIsRunning = true;
+                    recordStartTime = Date.now();
+                    recordTimerInterval = setInterval(updateRecordTimer, 1000);
+                    updateRecordUI();
+                    updateRecordStatus('Recording started...', 'warning');
+                    
+                    // Set timeout to stop recording after specified duration
+                    const duration = parseInt(recordDuration.value) * 1000;
+                    setTimeout(() => {
+                        if (recordIsRunning) {
+                            stopRecording();
+                        }
+                    }, duration);
+                } catch (error) {
+                    console.error('Error starting recording:', error);
+                    updateRecordStatus('Error starting recording: ' + error.message, 'danger');
+                    stopRecordCamera();
+                }
+            }
+        }
+        
+        // Stop recording
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                clearInterval(recordTimerInterval);
+                recordIsRunning = false;
+                updateRecordUI();
+                updateRecordStatus('Processing recording...', 'info');
+            }
+        }
+        
+        // Process recorded video
+        async function processRecording() {
+            try {
+                // Create a blob from the recorded chunks
+                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                
+                // Create a form to send the video
+                const formData = new FormData();
+                formData.append('video', blob, 'recorded-video.webm');
+                formData.append('model_id', recordModelSelect.value);
+                
+                updateRecordStatus('Translating recorded video...', 'info');
+                
+                // Send to server
+                const response = await fetch('{% url "translate_video" %}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.translation) {
+                    recordOutput.textContent = data.translation;
+                    updateRecordStatus('Translation completed successfully', 'success');
+                } else if (data.error) {
+                    recordOutput.textContent = `Error: ${data.error}`;
+                    updateRecordStatus('Error translating video: ' + data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('Error processing recording:', error);
+                updateRecordStatus('Error processing recording: ' + error.message, 'danger');
+            } finally {
+                stopRecordCamera();
+            }
+        }
+        
+        // Clear record output
+        function clearRecordOutput() {
+            recordOutput.textContent = "";
+            updateRecordStatus('Output cleared');
+        }
+        
+        // ==================== UPLOAD VIDEO ====================
+        const uploadForm = document.getElementById('video-upload-form');
+        const uploadModelSelect = document.getElementById('upload-model-select');
+        const uploadOutput = document.getElementById('upload-output');
+        const uploadStatus = document.getElementById('upload-status');
+        const uploadClearButton = document.getElementById('upload-clear');
+        
+        // Update upload status
+        function updateUploadStatus(message, type = 'info') {
+            uploadStatus.className = `alert alert-${type}`;
+            uploadStatus.textContent = message;
+        }
+        
+        // Upload and translate video
+        async function uploadAndTranslateVideo(file, modelId) {
+            try {
+                updateUploadStatus('Processing video...', 'info');
+                uploadOutput.textContent = 'Processing video...';
+                
+                const formData = new FormData();
+                formData.append('video', file);
+                formData.append('model_id', modelId);
+                
+                const response = await fetch('{% url "translate_video" %}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.translation) {
+                    uploadOutput.textContent = data.translation;
+                    updateUploadStatus('Video translated successfully', 'success');
+                } else if (data.error) {
+                    uploadOutput.textContent = `Error: ${data.error}`;
+                    updateUploadStatus('Error translating video: ' + data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('Error uploading video:', error);
+                uploadOutput.textContent = 'Error processing video. Please try again.';
+                updateUploadStatus('Error processing video: ' + error.message, 'danger');
+            }
+        }
+        
+        // Clear upload output
+        function clearUploadOutput() {
+            uploadOutput.textContent = "";
+            updateUploadStatus('Output cleared');
+        }
+        
+        // ==================== CAMERA SELECTION ====================
+        // Get available cameras
+        async function getCameras() {
+            try {
+                updateRealtimeStatus('Loading cameras...');
+                updateRecordStatus('Loading cameras...');
+                
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                
+                // Clear camera selects
+                realtimeCameraSelect.innerHTML = '';
+                recordCameraSelect.innerHTML = '';
+                
+                if (videoDevices.length === 0) {
+                    const option1 = document.createElement('option');
+                    option1.value = '';
+                    option1.text = 'No cameras found';
+                    realtimeCameraSelect.appendChild(option1);
+                    
+                    const option2 = document.createElement('option');
+                    option2.value = '';
+                    option2.text = 'No cameras found';
+                    recordCameraSelect.appendChild(option2);
+                    
+                    updateRealtimeStatus('No cameras found', 'warning');
+                    updateRecordStatus('No cameras found', 'warning');
+                } else {
+                    videoDevices.forEach((device, index) => {
+                        const option1 = document.createElement('option');
+                        option1.value = device.deviceId;
+                        option1.text = device.label || `Camera ${index + 1}`;
+                        realtimeCameraSelect.appendChild(option1);
+                        
+                        const option2 = document.createElement('option');
+                        option2.value = device.deviceId;
+                        option2.text = device.label || `Camera ${index + 1}`;
+                        recordCameraSelect.appendChild(option2);
+                    });
+                    
+                    updateRealtimeStatus('Cameras loaded. Ready to start.');
+                    updateRecordStatus('Cameras loaded. Ready to record.');
+                }
+            } catch (error) {
+                console.error('Error getting cameras:', error);
+                updateRealtimeStatus('Error loading cameras: ' + error.message, 'danger');
+                updateRecordStatus('Error loading cameras: ' + error.message, 'danger');
+                
+                const option1 = document.createElement('option');
+                option1.value = '';
+                option1.text = 'Error loading cameras';
+                realtimeCameraSelect.appendChild(option1);
+                
+                const option2 = document.createElement('option');
+                option2.value = '';
+                option2.text = 'Error loading cameras';
+                recordCameraSelect.appendChild(option2);
+            }
+        }
+        
+        // ==================== EVENT LISTENERS ====================
+        // Real-time translation
+        realtimeStartButton.addEventListener('click', startRealtimeTranslation);
+        realtimeStopButton.addEventListener('click', stopRealtimeTranslation);
+        realtimeClearButton.addEventListener('click', clearRealtimeOutput);
+        
+        // Record & translate
+        recordStartButton.addEventListener('click', startRecording);
+        recordStopButton.addEventListener('click', stopRecording);
+        recordClearButton.addEventListener('click', clearRecordOutput);
+        
+        // Upload video
+        uploadForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const videoFile = document.getElementById('video-file').files[0];
+            const modelId = uploadModelSelect.value;
+            
+            if (!videoFile) {
+                alert('Please select a video file.');
+                return;
+            }
+            
+            if (!modelId) {
+                alert('Please select a model.');
+                return;
+            }
+            
+            uploadAndTranslateVideo(videoFile, modelId);
+        });
+        
+        uploadClearButton.addEventListener('click', clearUploadOutput);
+        
+        // Initialize
+        getCameras();
+        updateRealtimeUI();
+        updateRecordUI();
+        updateUploadStatus('Ready to upload a video');
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block title %}Upload Model - Sign Language Translator{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3>Upload Trained Model</h3>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="{{ form.name.id_for_label }}" class="form-label">Model Name</label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <div class="text-danger">{{ form.name.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">Description</label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                            <div class="text-danger">{{ form.description.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.file.id_for_label }}" class="form-label">Model File</label>
+                        {{ form.file }}
+                        {% if form.file.errors %}
+                            <div class="text-danger">{{ form.file.errors }}</div>
+                        {% endif %}
+                        <div class="form-text">Upload a trained model file (.p format).</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ form.accuracy.id_for_label }}" class="form-label">Accuracy (%)</label>
+                        {{ form.accuracy }}
+                        {% if form.accuracy.errors %}
+                            <div class="text-danger">{{ form.accuracy.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'model_trainer' %}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Upload</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add Bootstrap classes to form fields
+        const nameInput = document.getElementById('{{ form.name.id_for_label }}');
+        const descriptionInput = document.getElementById('{{ form.description.id_for_label }}');
+        const fileInput = document.getElementById('{{ form.file.id_for_label }}');
+        const accuracyInput = document.getElementById('{{ form.accuracy.id_for_label }}');
+        
+        if (nameInput) nameInput.classList.add('form-control');
+        if (descriptionInput) descriptionInput.classList.add('form-control');
+        if (fileInput) fileInput.classList.add('form-control');
+        if (accuracyInput) accuracyInput.classList.add('form-control');
+    });
+</script>
+{% endblock %}

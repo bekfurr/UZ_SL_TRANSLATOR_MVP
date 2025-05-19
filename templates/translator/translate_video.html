@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}Translate Video - Sign Language Translator{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3>Translate Video</h3>
+            </div>
+            <div class="card-body">
+                <form id="translate-form" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="model-select" class="form-label">Select Model</label>
+                        <select id="model-select" name="model_id" class="form-select" required>
+                            <option value="">-- Select a model --</option>
+                            {% for model in models %}
+                            <option value="{{ model.id }}">{{ model.name }} ({{ model.accuracy|floatformat:2 }}%)</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="video-file" class="form-label">Video File</label>
+                        <input type="file" id="video-file" name="video" class="form-control" accept="video/*" required>
+                        <div class="form-text">Upload a video of a sign language gesture to translate.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Translation Result</label>
+                        <div id="translation-result" class="translation-output">
+                            Translation will appear here...
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'realtime_translator' %}" class="btn btn-secondary">Back</a>
+                        <button type="submit" class="btn btn-primary">Translate</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const translateForm = document.getElementById('translate-form');
+        const translationResult = document.getElementById('translation-result');
+        
+        translateForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            translationResult.textContent = 'Processing video...';
+            
+            try {
+                const response = await fetch('{% url "translate_video" %}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.translation) {
+                    translationResult.textContent = data.translation;
+                } else if (data.error) {
+                    translationResult.textContent = `Error: ${data.error}`;
+                }
+            } catch (error) {
+                console.error('Error translating video:', error);
+                translationResult.textContent = 'Error processing video. Please try again.';
+            }
+        });
+    });
+</script>
+{% endblock %}
